@@ -75,10 +75,30 @@ export default function LessonLayout({
         />
       </div>
     ) : (
-      <div className="aspect-video w-full bg-black/90 grid place-items-center text-white text-sm">
-        {lesson.mux_status === "errored"
-          ? "Video failed to process. Please contact your admin."
-          : "Video is still processing — check back in a minute."}
+      <div className="aspect-video w-full bg-black/90 grid place-items-center text-white text-sm px-6 text-center max-w-2xl mx-auto leading-snug">
+        {lesson.mux_status === "errored" ? (
+          "Video failed to process. Please contact your admin."
+        ) : lesson.mux_status === "ready" && !lesson.mux_playback_id ? (
+          <>
+            Mux reported the video as ready, but no playback ID was stored. Ask an
+            admin to confirm the webhook URL and signing environment, then re-upload
+            the file if needed.
+          </>
+        ) : lesson.mux_status === "ready" &&
+          lesson.mux_playback_id &&
+          !playbackToken ? (
+          <>
+            Playback is configured, but a signed token could not be created. Ensure{" "}
+            <code className="text-xs bg-white/10 px-1 rounded">MUX_SIGNING_KEY_ID</code>{" "}
+            and{" "}
+            <code className="text-xs bg-white/10 px-1 rounded">
+              MUX_SIGNING_PRIVATE_KEY
+            </code>{" "}
+            are set correctly on the server.
+          </>
+        ) : (
+          "Video is still processing — check back in a minute."
+        )}
       </div>
     );
 

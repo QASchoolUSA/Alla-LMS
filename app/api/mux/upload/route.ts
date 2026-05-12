@@ -17,7 +17,8 @@ export async function POST(req: Request) {
   const upload = await mux.video.uploads.create({
     cors_origin: env.appUrl,
     new_asset_settings: {
-      playback_policy: ["signed"],
+      playback_policies: ["signed"],
+      passthrough: lessonId,
       video_quality: "basic",
       mp4_support: "none",
     },

@@ -67,7 +67,7 @@ export const isSupabaseConfigured = Boolean(
 
 /** All three are required: layout calls `generateChatwootHmac(identityToken)` server-side. */
 export const isChatwootConfigured = Boolean(
-  env.chatwoot.baseUrl &&
-    env.chatwoot.websiteToken &&
-    process.env.CHATWOOT_IDENTITY_TOKEN
+  env.chatwoot.baseUrl?.trim() &&
+    env.chatwoot.websiteToken?.trim() &&
+    process.env.CHATWOOT_IDENTITY_TOKEN?.trim()
 );

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getCourseDetail } from "@/lib/queries";
-import { signPlaybackToken } from "@/lib/mux";
+import { signPlaybackToken } from "@/lib/mux-signing";
 import LessonSidebar from "@/components/LessonSidebar";
 import LessonLayout from "@/components/LessonLayout";
 
@@ -51,11 +51,15 @@ export default async function LessonPlayerPage({ params }: PageProps) {
   // generate a short-lived signed URL directly here as well.
   let signedMaterialUrl: string | null = null;
   if (lesson.material_storage_path) {
-    const supabase = await createClient();
-    const { data } = await supabase.storage
-      .from("materials")
-      .createSignedUrl(lesson.material_storage_path, 60 * 60);
-    signedMaterialUrl = data?.signedUrl ?? null;
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase.storage
+        .from("materials")
+        .createSignedUrl(lesson.material_storage_path, 60 * 60);
+      signedMaterialUrl = data?.signedUrl ?? null;
+    } catch {
+      signedMaterialUrl = null;
+    }
   }
 
   return (

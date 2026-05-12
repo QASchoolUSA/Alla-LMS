@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createServiceClient } from "@/lib/supabase/server";
 import { verifyMuxWebhook } from "@/lib/mux";
 
@@ -36,9 +37,21 @@ export async function POST(req: Request) {
 
   const supabase = createServiceClient();
 
-  // The lesson row is keyed by mux_upload_id (set when we created the upload)
-  // OR by mux_asset_id (for subsequent updates).
+  // Prefer `passthrough` (set on direct uploads) so we always correlate the asset
+  // to a lesson row even if upload_id shape differs between API versions.
   async function findLessonId(): Promise<string | null> {
+    const pass = asset.passthrough?.trim();
+    if (
+      pass &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pass)
+    ) {
+      const { data } = await supabase
+        .from("lessons")
+        .select("id")
+        .eq("id", pass)
+        .maybeSingle();
+      if (data) return (data as { id: string }).id;
+    }
     if (asset.upload_id) {
       const { data } = await supabase
         .from("lessons")
@@ -58,6 +71,12 @@ export async function POST(req: Request) {
   const lessonId = await findLessonId();
   if (!lessonId) return NextResponse.json({ ok: true, note: "lesson not found" });
 
+  const shouldRevalidate =
+    event.type === "video.asset.created" ||
+    event.type === "video.asset.ready" ||
+    event.type === "video.asset.errored" ||
+    event.type === "video.upload.errored";
+
   switch (event.type) {
     case "video.asset.created":
       await supabase
@@ -67,12 +86,15 @@ export async function POST(req: Request) {
       break;
 
     case "video.asset.ready": {
-      const playback = asset.playback_ids?.find((p) => p.policy === "signed");
+      const ids = asset.playback_ids ?? [];
+      const signed = ids.find((p) => p.policy === "signed");
+      const playbackId =
+        signed?.id ?? (ids.length === 1 ? ids[0]?.id ?? null : null);
       await supabase
         .from("lessons")
         .update({
           mux_asset_id: asset.id,
-          mux_playback_id: playback?.id ?? null,
+          mux_playback_id: playbackId,
           mux_status: "ready",
         })
         .eq("id", lessonId);
@@ -90,6 +112,19 @@ export async function POST(req: Request) {
     default:
       // ignore other events
       break;
+  }
+
+  if (shouldRevalidate) {
+    const { data: row } = await supabase
+      .from("lessons")
+      .select("course_id")
+      .eq("id", lessonId)
+      .maybeSingle();
+    const courseId = (row as { course_id: string } | null)?.course_id;
+    if (courseId) {
+      revalidatePath(`/courses/${courseId}/lessons/${lessonId}`);
+      revalidatePath(`/courses/${courseId}`);
+    }
   }
 
   return NextResponse.json({ ok: true });

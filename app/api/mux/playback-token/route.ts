@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { signPlaybackToken } from "@/lib/mux";
+import { signPlaybackToken } from "@/lib/mux-signing";
 
 /**
  * Issues a short-lived JWT for the given private playback ID,
@@ -45,6 +45,13 @@ export async function GET(req: Request) {
     }
   }
 
-  const token = await signPlaybackToken(playbackId);
-  return NextResponse.json({ token });
+  try {
+    const token = await signPlaybackToken(playbackId);
+    return NextResponse.json({ token });
+  } catch {
+    return NextResponse.json(
+      { error: "Could not sign playback token" },
+      { status: 500 }
+    );
+  }
 }
