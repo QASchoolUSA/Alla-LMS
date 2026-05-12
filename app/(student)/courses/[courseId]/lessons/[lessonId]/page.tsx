@@ -28,9 +28,9 @@ export default async function LessonPlayerPage({ params }: PageProps) {
   const prevLesson = idx > 0 ? lessons[idx - 1] : null;
   const nextLesson = idx < lessons.length - 1 ? lessons[idx + 1] : null;
 
-  const completedSet = new Set(
-    progress.filter((p) => p.completed).map((p) => p.lesson_id)
-  );
+  const completedLessonIds = progress
+    .filter((p) => p.completed)
+    .map((p) => p.lesson_id);
 
   const ownProgress = progress.find((p) => p.lesson_id === lesson.id);
   const startTime = ownProgress?.completed
@@ -76,7 +76,7 @@ export default async function LessonPlayerPage({ params }: PageProps) {
         courseTitle={course.title}
         lessons={lessons}
         currentLessonId={lesson.id}
-        completedLessonIds={completedSet}
+        completedLessonIds={completedLessonIds}
         enrolled={enrolled}
       />
     </div>

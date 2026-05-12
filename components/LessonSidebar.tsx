@@ -11,7 +11,7 @@ interface LessonSidebarProps {
   courseTitle: string;
   lessons: Lesson[];
   currentLessonId: string;
-  completedLessonIds: Set<string>;
+  completedLessonIds: string[];
   enrolled: boolean;
 }
 
@@ -41,7 +41,7 @@ export default function LessonSidebar({
   const list = (
     <ol className="divide-y divide-black/[0.05]">
       {lessons.map((l, i) => {
-        const completed = completedLessonIds.has(l.id);
+        const completed = completedLessonIds.includes(l.id);
         const active = l.id === currentLessonId;
         const locked = !enrolled;
 
