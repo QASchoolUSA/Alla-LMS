@@ -10,6 +10,8 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { enrollAction } from "./actions";
 import { cn } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 interface PageProps {
   params: Promise<{ courseId: string }>;
 }

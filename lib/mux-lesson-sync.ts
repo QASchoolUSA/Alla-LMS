@@ -50,11 +50,37 @@ export async function syncLessonMuxFromApi(
     };
   }
 
-  const mux = getMux();
+  if (!lesson.mux_upload_id && !lesson.mux_asset_id) {
+    return {
+      mux_status: (lesson.mux_status as MuxStatus) ?? "waiting",
+      mux_playback_id: lesson.mux_playback_id,
+      mux_asset_id: lesson.mux_asset_id,
+      changed: false,
+    };
+  }
+
+  let mux: ReturnType<typeof getMux>;
+  try {
+    mux = getMux();
+  } catch (err) {
+    throw new Error(
+      err instanceof Error ? err.message : "Mux is not configured on the server"
+    );
+  }
+
   let assetId = lesson.mux_asset_id as string | null;
 
   if (!assetId && lesson.mux_upload_id) {
-    const upload = await mux.video.uploads.retrieve(lesson.mux_upload_id);
+    let upload;
+    try {
+      upload = await mux.video.uploads.retrieve(lesson.mux_upload_id);
+    } catch (err) {
+      throw new Error(
+        err instanceof Error
+          ? `Mux upload lookup failed: ${err.message}`
+          : "Mux upload lookup failed"
+      );
+    }
     if (
       upload.status === "errored" ||
       upload.status === "cancelled" ||
@@ -89,7 +115,16 @@ export async function syncLessonMuxFromApi(
     };
   }
 
-  const asset = await mux.video.assets.retrieve(assetId);
+  let asset;
+  try {
+    asset = await mux.video.assets.retrieve(assetId);
+  } catch (err) {
+    throw new Error(
+      err instanceof Error
+        ? `Mux asset lookup failed: ${err.message}`
+        : "Mux asset lookup failed"
+    );
+  }
 
   if (asset.status === "errored") {
     await supabase

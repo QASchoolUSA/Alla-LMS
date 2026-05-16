@@ -3,8 +3,12 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getCourseDetail } from "@/lib/queries";
 import { signPlaybackToken } from "@/lib/mux-signing";
+import { profileMatchesRole } from "@/lib/roles";
 import LessonSidebar from "@/components/LessonSidebar";
 import LessonLayout from "@/components/LessonLayout";
+import type { Lesson } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ courseId: string; lessonId: string }>;
@@ -13,20 +17,37 @@ interface PageProps {
 export default async function LessonPlayerPage({ params }: PageProps) {
   const { courseId, lessonId } = await params;
   const user = await requireUser();
+  const isAdmin = profileMatchesRole(user.profile.role, "admin");
   const { course, lessons, progress, enrolled } = await getCourseDetail(
     courseId,
     user.id
   );
 
   if (!course) notFound();
-  if (!enrolled) redirect(`/courses/${courseId}`);
+  if (!enrolled && !isAdmin) redirect(`/courses/${courseId}`);
 
-  const lesson = lessons.find((l) => l.id === lessonId);
+  let lesson: Lesson | undefined = lessons.find((l) => l.id === lessonId);
+  if (!lesson) {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("lessons")
+      .select("*")
+      .eq("id", lessonId)
+      .eq("course_id", courseId)
+      .maybeSingle();
+    lesson = data ?? undefined;
+  }
   if (!lesson) notFound();
 
-  const idx = lessons.findIndex((l) => l.id === lessonId);
-  const prevLesson = idx > 0 ? lessons[idx - 1] : null;
-  const nextLesson = idx < lessons.length - 1 ? lessons[idx + 1] : null;
+  const lessonList =
+    lessons.some((l) => l.id === lessonId)
+      ? lessons
+      : [...lessons, lesson].sort((a, b) => a.position - b.position);
+
+  const idx = lessonList.findIndex((l) => l.id === lessonId);
+  const prevLesson = idx > 0 ? lessonList[idx - 1] : null;
+  const nextLesson =
+    idx < lessonList.length - 1 ? lessonList[idx + 1] : null;
 
   const completedLessonIds = progress
     .filter((p) => p.completed)
@@ -73,15 +94,16 @@ export default async function LessonPlayerPage({ params }: PageProps) {
           startTimeSeconds={startTime}
           prevLessonId={prevLesson?.id ?? null}
           nextLessonId={nextLesson?.id ?? null}
+          hasVideoUpload={Boolean(lesson.mux_upload_id || lesson.mux_asset_id)}
         />
       </div>
       <LessonSidebar
         courseId={courseId}
         courseTitle={course.title}
-        lessons={lessons}
+        lessons={lessonList}
         currentLessonId={lesson.id}
         completedLessonIds={completedLessonIds}
-        enrolled={enrolled}
+        enrolled={enrolled || isAdmin}
       />
     </div>
   );

@@ -16,6 +16,7 @@ interface LessonLayoutProps {
   startTimeSeconds: number;
   prevLessonId: string | null;
   nextLessonId: string | null;
+  hasVideoUpload?: boolean;
 }
 
 async function reportProgress(
@@ -47,6 +48,7 @@ export default function LessonLayout({
   startTimeSeconds,
   prevLessonId,
   nextLessonId,
+  hasVideoUpload = false,
 }: LessonLayoutProps) {
   const handleTime = React.useCallback(
     (sec: number) => {
@@ -70,6 +72,7 @@ export default function LessonLayout({
       initialPlaybackId={lesson.mux_playback_id}
       initialPlaybackToken={playbackToken}
       startTimeSeconds={startTimeSeconds}
+      hasVideoUpload={hasVideoUpload}
       onTimeUpdate={handleTime}
       onEnded={handleEnded}
     />

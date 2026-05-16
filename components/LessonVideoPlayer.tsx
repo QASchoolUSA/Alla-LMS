@@ -12,6 +12,7 @@ interface LessonVideoPlayerProps {
   initialPlaybackId: string | null;
   initialPlaybackToken: string | null;
   startTimeSeconds: number;
+  hasVideoUpload?: boolean;
   onTimeUpdate: (sec: number) => void;
   onEnded: () => void;
 }
@@ -34,6 +35,7 @@ export default function LessonVideoPlayer({
   initialPlaybackId,
   initialPlaybackToken,
   startTimeSeconds,
+  hasVideoUpload = false,
   onTimeUpdate,
   onEnded,
 }: LessonVideoPlayerProps) {
@@ -51,25 +53,35 @@ export default function LessonVideoPlayer({
   }, [initialStatus, initialPlaybackId, initialPlaybackToken]);
 
   const syncFromMux = React.useCallback(async () => {
-    const res = await fetch("/api/mux/sync-lesson", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lessonId }),
-    });
-    if (!res.ok) return;
-    const data = (await res.json()) as {
-      mux_status: MuxStatus;
-      mux_playback_id: string | null;
-      changed?: boolean;
-    };
-    setMuxStatus(data.mux_status);
-    if (data.mux_playback_id) setPlaybackId(data.mux_playback_id);
-    if (data.changed) router.refresh();
-    return data;
+    try {
+      const res = await fetch("/api/mux/sync-lesson", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lessonId }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        mux_status: MuxStatus;
+        mux_playback_id: string | null;
+        changed?: boolean;
+      };
+      setMuxStatus(data.mux_status);
+      if (data.mux_playback_id) setPlaybackId(data.mux_playback_id);
+      if (data.changed) router.refresh();
+      return data;
+    } catch {
+      return;
+    }
   }, [lessonId, router]);
+
+  const shouldPollMux =
+    hasVideoUpload &&
+    muxStatus !== "ready" &&
+    muxStatus !== "errored";
 
   React.useEffect(() => {
     if (muxStatus === "ready" || muxStatus === "errored") return;
+    if (!shouldPollMux) return;
 
     void syncFromMux();
     const interval = window.setInterval(() => {
@@ -105,7 +117,7 @@ export default function LessonVideoPlayer({
       window.clearInterval(interval);
       void supabase.removeChannel(channel);
     };
-  }, [lessonId, muxStatus, router, syncFromMux]);
+  }, [lessonId, muxStatus, router, shouldPollMux, syncFromMux]);
 
   React.useEffect(() => {
     if (muxStatus !== "ready" || !playbackId || playbackToken) return;
@@ -152,6 +164,8 @@ export default function LessonVideoPlayer({
           </code>{" "}
           are set correctly on the server.
         </>
+      ) : !hasVideoUpload && muxStatus === "waiting" ? (
+        "No video has been added to this lesson yet."
       ) : (
         <span className="flex flex-col items-center gap-2">
           <span className="inline-block w-2 h-2 rounded-full bg-white/70 animate-pulse" />

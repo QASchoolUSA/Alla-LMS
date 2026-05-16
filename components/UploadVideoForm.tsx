@@ -56,20 +56,24 @@ export default function UploadVideoForm({
     if (state !== "processing") return;
 
     const sync = async () => {
-      const res = await fetch("/api/mux/sync-lesson", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ lessonId }),
-      });
-      if (!res.ok) return;
-      const data = (await res.json()) as { mux_status?: string };
-      if (data.mux_status === "ready") {
-        setState("ready");
-        router.refresh();
-      } else if (data.mux_status === "errored") {
-        setState("error");
-        setErrorMsg("Video processing failed.");
-        router.refresh();
+      try {
+        const res = await fetch("/api/mux/sync-lesson", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lessonId }),
+        });
+        if (!res.ok) return;
+        const data = (await res.json()) as { mux_status?: string };
+        if (data.mux_status === "ready") {
+          setState("ready");
+          router.refresh();
+        } else if (data.mux_status === "errored") {
+          setState("error");
+          setErrorMsg("Video processing failed.");
+          router.refresh();
+        }
+      } catch {
+        // ignore transient sync errors
       }
     };
 

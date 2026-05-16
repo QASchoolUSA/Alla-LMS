@@ -16,17 +16,21 @@ export default async function StudentLayout({
 
   let chatwoot: React.ReactNode = null;
   if (isChatwootConfigured) {
-    const hmac = generateChatwootHmac(user.id);
-    chatwoot = (
-      <ChatwootWidget
-        baseUrl={env.chatwoot.baseUrl}
-        websiteToken={env.chatwoot.websiteToken}
-        userId={user.id}
-        userEmail={user.email}
-        userName={user.profile.full_name ?? user.email}
-        userHmac={hmac}
-      />
-    );
+    try {
+      const hmac = generateChatwootHmac(user.id);
+      chatwoot = (
+        <ChatwootWidget
+          baseUrl={env.chatwoot.baseUrl}
+          websiteToken={env.chatwoot.websiteToken}
+          userId={user.id}
+          userEmail={user.email}
+          userName={user.profile.full_name ?? user.email}
+          userHmac={hmac}
+        />
+      );
+    } catch {
+      // Misconfigured Chatwoot env must not break student pages.
+    }
   }
 
   return (

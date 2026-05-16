@@ -1,3 +1,4 @@
+import { unstable_noStore as noStore } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import type { Course, Lesson, LessonProgress } from "@/lib/types";
 
@@ -55,8 +56,10 @@ export async function getCourseDetail(
   progress: LessonProgress[];
   enrolled: boolean;
 }> {
+  noStore();
   const supabase = await createClient();
-  const [{ data: course }, { data: lessons }, { data: progress }, { data: enrollment }] =
+
+  const [{ data: course }, { data: lessons }, { data: progressRows }, { data: enrollment }] =
     await Promise.all([
       supabase.from("courses").select("*").eq("id", courseId).maybeSingle(),
       supabase
@@ -73,10 +76,15 @@ export async function getCourseDetail(
         .maybeSingle(),
     ]);
 
+  const lessonIds = new Set((lessons ?? []).map((l) => l.id));
+  const progress = (progressRows ?? []).filter((p) =>
+    lessonIds.has(p.lesson_id as string)
+  );
+
   return {
     course: course ?? null,
     lessons: lessons ?? [],
-    progress: progress ?? [],
+    progress,
     enrolled: Boolean(enrollment),
   };
 }

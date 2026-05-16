@@ -114,6 +114,15 @@ drop policy if exists "Public reads published courses" on public.courses;
 create policy "Public reads published courses" on public.courses
   for select using (published = true);
 
+drop policy if exists "Enrolled students read courses" on public.courses;
+create policy "Enrolled students read courses" on public.courses
+  for select using (
+    exists (
+      select 1 from public.enrollments
+      where user_id = auth.uid() and course_id = courses.id
+    )
+  );
+
 drop policy if exists "Admin full access courses" on public.courses;
 create policy "Admin full access courses" on public.courses
   for all using (

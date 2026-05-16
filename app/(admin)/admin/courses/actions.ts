@@ -104,6 +104,8 @@ export async function createLessonAction(formData: FormData) {
   if (error || !data) throw new Error(error?.message ?? "Failed to create lesson");
 
   revalidatePath(`/admin/courses/${courseId}`);
+  revalidatePath(`/courses/${courseId}`);
+  revalidatePath(`/courses/${courseId}/lessons/${data.id}`);
   redirect(`/admin/courses/${courseId}/lessons/${data.id}/edit`);
 }
 

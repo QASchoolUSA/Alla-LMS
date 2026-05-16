@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { signPlaybackToken } from "@/lib/mux-signing";
+import { profileMatchesRole } from "@/lib/roles";
 
 /**
  * Issues a short-lived JWT for the given private playback ID,
@@ -9,7 +10,10 @@ import { signPlaybackToken } from "@/lib/mux-signing";
  * (or is an admin).
  */
 export async function GET(req: Request) {
-  const user = await requireUser();
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const url = new URL(req.url);
   const playbackId = url.searchParams.get("playbackId");
   const lessonId = url.searchParams.get("lessonId");
@@ -33,7 +37,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (user.profile.role !== "admin") {
+  if (!profileMatchesRole(user.profile.role, "admin")) {
     const { data: enrollment } = await supabase
       .from("enrollments")
       .select("id")

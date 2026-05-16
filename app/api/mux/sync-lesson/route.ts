@@ -1,13 +1,17 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { requireUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
+import { profileMatchesRole } from "@/lib/roles";
 import { createClient } from "@/lib/supabase/server";
 import { syncLessonMuxFromApi } from "@/lib/mux-lesson-sync";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
-  const user = await requireUser();
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const body = await req.json().catch(() => ({}));
   const lessonId = String(body?.lessonId ?? "");
   if (!lessonId) {
@@ -25,7 +29,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (user.profile.role !== "admin") {
+  if (!profileMatchesRole(user.profile.role, "admin")) {
     const { data: enrollment } = await supabase
       .from("enrollments")
       .select("id")
