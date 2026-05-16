@@ -1,18 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Plus, Trash2, GripVertical } from "lucide-react";
+import { ArrowLeft, Plus, GripVertical } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Input, Textarea } from "@/components/ui/Input";
-import {
-  deleteCourseAction,
-  updateCourseAction,
-  createLessonAction,
-} from "../actions";
+import { updateCourseAction, createLessonAction } from "../actions";
 import { LessonStatusBadge } from "./LessonStatusBadge";
+import { DeleteCourseForm } from "./DeleteCourseForm";
 
 interface PageProps {
   params: Promise<{ courseId: string }>;
@@ -161,23 +158,10 @@ export default async function AdminCourseDetailPage({ params }: PageProps) {
           </Card>
 
           <Card className="p-5">
-            <form action={deleteCourseAction}>
-              <input type="hidden" name="id" value={course.id} />
-              <p className="text-sm font-medium text-[#1a1916] mb-1">
-                Danger zone
-              </p>
-              <p className="text-xs text-[#6b6a66] mb-3">
-                Deleting a course removes all lessons and student progress.
-              </p>
-              <Button
-                type="submit"
-                variant="danger"
-                fullWidth
-                size="sm"
-              >
-                <Trash2 size={14} /> Delete course
-              </Button>
-            </form>
+            <DeleteCourseForm
+              courseId={course.id}
+              courseTitle={course.title}
+            />
           </Card>
         </aside>
       </div>
