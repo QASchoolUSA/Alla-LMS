@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, FileText } from "lucide-react";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 import LessonVideoPlayer from "@/components/LessonVideoPlayer";
-import PdfViewer from "@/components/PdfViewer";
+import LessonMaterialSection from "@/components/LessonMaterialSection";
 import { Button } from "@/components/ui/Button";
 import type { Lesson } from "@/lib/types";
 
@@ -61,9 +61,9 @@ export default function LessonLayout({
     void reportProgress(lesson.id, 0, true);
   }, [lesson.id]);
 
-  const showMaterial = Boolean(signedMaterialUrl);
+  const hasMaterial = Boolean(lesson.material_storage_path);
   const materialFirst =
-    showMaterial && lesson.material_display_position === "before";
+    hasMaterial && lesson.material_display_position === "before";
 
   const videoBlock = (
     <LessonVideoPlayer
@@ -78,20 +78,42 @@ export default function LessonLayout({
     />
   );
 
-  const materialBlock = signedMaterialUrl && (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2 text-sm text-[#6b6a66]">
-        <FileText size={16} />
-        <span className="font-medium">Course material</span>
-      </div>
-      <PdfViewer signedUrl={signedMaterialUrl} />
-    </section>
+  const materialBlock = (
+    <LessonMaterialSection
+      lessonId={lesson.id}
+      initialSignedUrl={signedMaterialUrl}
+      hasMaterial={hasMaterial}
+    />
+  );
+
+  const contentBelow = (
+    <div className="px-4 lg:px-8 pt-6 pb-12 max-w-4xl mx-auto w-full space-y-6">
+      <header>
+        <h1 className="text-xl lg:text-2xl font-bold text-[#1a1916]">
+          {lesson.title}
+        </h1>
+        {lesson.description && (
+          <p className="mt-2 text-sm text-[#6b6a66] leading-relaxed">
+            {lesson.description}
+          </p>
+        )}
+      </header>
+      {!materialFirst ? materialBlock : null}
+      <NavButtons
+        courseId={courseId}
+        prevLessonId={prevLessonId}
+        nextLessonId={nextLessonId}
+      />
+    </div>
   );
 
   return (
     <div className="flex flex-col">
       {materialFirst ? (
         <>
+          <div className="px-4 lg:px-8 pt-6 max-w-4xl mx-auto w-full">
+            {materialBlock}
+          </div>
           {videoBlock}
           <div className="px-4 lg:px-8 pt-6 pb-12 max-w-4xl mx-auto w-full space-y-6">
             <header>
@@ -104,7 +126,6 @@ export default function LessonLayout({
                 </p>
               )}
             </header>
-            {materialBlock}
             <NavButtons
               courseId={courseId}
               prevLessonId={prevLessonId}
@@ -115,24 +136,7 @@ export default function LessonLayout({
       ) : (
         <>
           {videoBlock}
-          <div className="px-4 lg:px-8 pt-6 pb-12 max-w-4xl mx-auto w-full space-y-6">
-            <header>
-              <h1 className="text-xl lg:text-2xl font-bold text-[#1a1916]">
-                {lesson.title}
-              </h1>
-              {lesson.description && (
-                <p className="mt-2 text-sm text-[#6b6a66] leading-relaxed">
-                  {lesson.description}
-                </p>
-              )}
-            </header>
-            {materialBlock}
-            <NavButtons
-              courseId={courseId}
-              prevLessonId={prevLessonId}
-              nextLessonId={nextLessonId}
-            />
-          </div>
+          {contentBelow}
         </>
       )}
     </div>

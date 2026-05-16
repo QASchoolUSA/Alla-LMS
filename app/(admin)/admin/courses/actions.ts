@@ -182,6 +182,8 @@ export async function uploadMaterialAction(formData: FormData) {
     .eq("id", lessonId);
 
   revalidatePath(`/admin/courses/${courseId}/lessons/${lessonId}/edit`);
+  revalidatePath(`/courses/${courseId}/lessons/${lessonId}`);
+  revalidatePath(`/courses/${courseId}`);
 }
 
 export async function removeMaterialAction(formData: FormData) {
@@ -202,4 +204,6 @@ export async function removeMaterialAction(formData: FormData) {
     .eq("id", lessonId);
 
   revalidatePath(`/admin/courses/${courseId}/lessons/${lessonId}/edit`);
+  revalidatePath(`/courses/${courseId}/lessons/${lessonId}`);
+  revalidatePath(`/courses/${courseId}`);
 }

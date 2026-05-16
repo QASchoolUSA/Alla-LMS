@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { CheckCircle2, Circle, Lock, X, ListVideo } from "lucide-react";
+import { CheckCircle2, Circle, Lock, X, ListVideo, FileText } from "lucide-react";
 import type { Lesson } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -79,6 +79,13 @@ export default function LessonSidebar({
               >
                 {l.title}
               </p>
+              {!locked && l.material_storage_path ? (
+                <FileText
+                  size={14}
+                  className="text-[#01696f] shrink-0 mt-0.5"
+                  aria-hidden
+                />
+              ) : null}
             </div>
           </div>
         );

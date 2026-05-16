@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CheckCircle2, Circle, Lock, BookOpen } from "lucide-react";
+import { CheckCircle2, Circle, Lock, BookOpen, FileText } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { getCourseDetail } from "@/lib/queries";
 import { Badge } from "@/components/ui/Badge";
@@ -31,6 +31,7 @@ export default async function CourseOverviewPage({ params }: PageProps) {
   );
   const completedCount = lessons.filter((l) => completedSet.has(l.id)).length;
   const pct = lessons.length === 0 ? 0 : Math.round((completedCount / lessons.length) * 100);
+  const lessonsWithMaterials = lessons.filter((l) => l.material_storage_path);
 
   return (
     <article className="max-w-5xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
@@ -92,6 +93,30 @@ export default async function CourseOverviewPage({ params }: PageProps) {
         </Link>
       ) : null}
 
+      {enrolled && lessonsWithMaterials.length > 0 ? (
+        <section className="space-y-2">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-[#6b6a66]">
+            Course materials
+          </h2>
+          <ul className="rounded-xl border border-black/[0.06] bg-white overflow-hidden divide-y divide-black/[0.04]">
+            {lessonsWithMaterials.map((l) => (
+              <li key={l.id}>
+                <Link
+                  href={`/courses/${course.id}/lessons/${l.id}`}
+                  className="flex items-center gap-3 px-4 py-3.5 hover:bg-[#01696f]/[0.04] transition-colors"
+                >
+                  <FileText size={18} className="text-[#01696f] shrink-0" />
+                  <span className="flex-1 text-sm font-medium text-[#1a1916] truncate">
+                    {l.title}
+                  </span>
+                  <span className="text-xs text-[#6b6a66] shrink-0">PDF</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
       <section className="space-y-2">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[#6b6a66]">
           Lessons
@@ -119,6 +144,13 @@ export default async function CourseOverviewPage({ params }: PageProps) {
                 <span className="flex-1 text-sm text-[#1a1916] truncate">
                   {l.title}
                 </span>
+                {!locked && l.material_storage_path ? (
+                  <FileText
+                    size={16}
+                    className="text-[#01696f] shrink-0"
+                    aria-label="Includes PDF material"
+                  />
+                ) : null}
                 {locked ? (
                   <Lock size={18} className="text-[#b0afab]" />
                 ) : completed ? (

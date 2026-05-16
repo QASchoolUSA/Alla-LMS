@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth";
+import { getSessionUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { signLessonMaterialUrl } from "@/lib/materials";
+import { profileMatchesRole } from "@/lib/roles";
 
 interface Ctx {
   params: Promise<{ lessonId: string }>;
@@ -9,14 +11,15 @@ interface Ctx {
 /**
  * Returns a short-lived signed Supabase Storage URL for a lesson's PDF
  * material — only when the caller is enrolled (or admin).
- *
- * The PDF itself is never exposed via a public URL.
  */
 export async function GET(_req: Request, { params }: Ctx) {
   const { lessonId } = await params;
-  const user = await requireUser();
-  const supabase = await createClient();
+  const user = await getSessionUser();
+  if (!user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
+  const supabase = await createClient();
   const { data: lesson } = await supabase
     .from("lessons")
     .select("id, course_id, material_storage_path")
@@ -27,7 +30,7 @@ export async function GET(_req: Request, { params }: Ctx) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  if (user.profile.role !== "admin") {
+  if (!profileMatchesRole(user.profile.role, "admin")) {
     const { data: enrollment } = await supabase
       .from("enrollments")
       .select("id")
@@ -39,13 +42,10 @@ export async function GET(_req: Request, { params }: Ctx) {
     }
   }
 
-  const { data, error } = await supabase.storage
-    .from("materials")
-    .createSignedUrl(lesson.material_storage_path, 60 * 60);
-
-  if (error || !data?.signedUrl) {
+  const url = await signLessonMaterialUrl(lesson.material_storage_path);
+  if (!url) {
     return NextResponse.json({ error: "Could not sign URL" }, { status: 500 });
   }
 
-  return NextResponse.json({ url: data.signedUrl });
+  return NextResponse.json({ url });
 }
