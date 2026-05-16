@@ -13,9 +13,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "lessonId required" }, { status: 400 });
   }
 
+  const origin = req.headers.get("origin");
+  const corsOrigin =
+    origin && /^https?:\/\//i.test(origin) ? origin : env.appUrl;
+
   const mux = getMux();
   const upload = await mux.video.uploads.create({
-    cors_origin: env.appUrl,
+    cors_origin: corsOrigin,
     new_asset_settings: {
       playback_policies: ["signed"],
       passthrough: lessonId,

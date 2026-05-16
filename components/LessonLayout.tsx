@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, FileText } from "lucide-react";
-import VideoPlayer from "@/components/VideoPlayer";
+import LessonVideoPlayer from "@/components/LessonVideoPlayer";
 import PdfViewer from "@/components/PdfViewer";
 import { Button } from "@/components/ui/Button";
 import type { Lesson } from "@/lib/types";
@@ -63,44 +63,17 @@ export default function LessonLayout({
   const materialFirst =
     showMaterial && lesson.material_display_position === "before";
 
-  const videoBlock =
-    lesson.mux_status === "ready" && lesson.mux_playback_id && playbackToken ? (
-      <div className="sticky top-14 lg:top-0 z-10 bg-black w-full lg:relative">
-        <VideoPlayer
-          playbackId={lesson.mux_playback_id}
-          token={playbackToken}
-          startTimeSeconds={startTimeSeconds || undefined}
-          onTimeUpdate={handleTime}
-          onEnded={handleEnded}
-        />
-      </div>
-    ) : (
-      <div className="aspect-video w-full bg-black/90 grid place-items-center text-white text-sm px-6 text-center max-w-2xl mx-auto leading-snug">
-        {lesson.mux_status === "errored" ? (
-          "Video failed to process. Please contact your admin."
-        ) : lesson.mux_status === "ready" && !lesson.mux_playback_id ? (
-          <>
-            Mux reported the video as ready, but no playback ID was stored. Ask an
-            admin to confirm the webhook URL and signing environment, then re-upload
-            the file if needed.
-          </>
-        ) : lesson.mux_status === "ready" &&
-          lesson.mux_playback_id &&
-          !playbackToken ? (
-          <>
-            Playback is configured, but a signed token could not be created. Ensure{" "}
-            <code className="text-xs bg-white/10 px-1 rounded">MUX_SIGNING_KEY_ID</code>{" "}
-            and{" "}
-            <code className="text-xs bg-white/10 px-1 rounded">
-              MUX_SIGNING_PRIVATE_KEY
-            </code>{" "}
-            are set correctly on the server.
-          </>
-        ) : (
-          "Video is still processing — check back in a minute."
-        )}
-      </div>
-    );
+  const videoBlock = (
+    <LessonVideoPlayer
+      lessonId={lesson.id}
+      initialStatus={lesson.mux_status}
+      initialPlaybackId={lesson.mux_playback_id}
+      initialPlaybackToken={playbackToken}
+      startTimeSeconds={startTimeSeconds}
+      onTimeUpdate={handleTime}
+      onEnded={handleEnded}
+    />
+  );
 
   const materialBlock = signedMaterialUrl && (
     <section className="space-y-3">

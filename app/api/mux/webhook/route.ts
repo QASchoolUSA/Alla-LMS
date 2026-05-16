@@ -8,6 +8,7 @@ export const runtime = "nodejs";
 interface MuxAsset {
   id: string;
   upload_id?: string;
+  asset_id?: string;
   passthrough?: string;
   status?: string;
   playback_ids?: Array<{ id: string; policy: string }>;
@@ -60,6 +61,14 @@ export async function POST(req: Request) {
         .maybeSingle();
       if (data) return (data as { id: string }).id;
     }
+    if (event.type.startsWith("video.upload.")) {
+      const { data } = await supabase
+        .from("lessons")
+        .select("id")
+        .eq("mux_upload_id", asset.id)
+        .maybeSingle();
+      if (data) return (data as { id: string }).id;
+    }
     const { data } = await supabase
       .from("lessons")
       .select("id")
@@ -75,9 +84,27 @@ export async function POST(req: Request) {
     event.type === "video.asset.created" ||
     event.type === "video.asset.ready" ||
     event.type === "video.asset.errored" ||
+    event.type === "video.upload.asset_created" ||
     event.type === "video.upload.errored";
 
   switch (event.type) {
+    case "video.upload.asset_created": {
+      const uploadId = asset.id;
+      const assetId = asset.asset_id;
+      if (!uploadId || !assetId) break;
+      const { data: row } = await supabase
+        .from("lessons")
+        .select("id")
+        .eq("mux_upload_id", uploadId)
+        .maybeSingle();
+      const id = (row as { id: string } | null)?.id ?? lessonId;
+      await supabase
+        .from("lessons")
+        .update({ mux_asset_id: assetId, mux_status: "preparing" })
+        .eq("id", id);
+      break;
+    }
+
     case "video.asset.created":
       await supabase
         .from("lessons")

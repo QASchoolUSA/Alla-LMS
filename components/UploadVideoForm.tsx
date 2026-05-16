@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import MuxUploader from "@mux/mux-uploader-react";
 import { UploadCloud, CheckCircle2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -18,6 +19,7 @@ export default function UploadVideoForm({
   initialStatus,
   onUploaded,
 }: UploadVideoFormProps) {
+  const router = useRouter();
   const [progress, setProgress] = React.useState(0);
   const [endpoint, setEndpoint] = React.useState<string | null>(null);
   const [uploadId, setUploadId] = React.useState<string | null>(null);
@@ -49,6 +51,32 @@ export default function UploadVideoForm({
     onUploaded?.(data.uploadId);
     return data.url;
   }, [lessonId, onUploaded]);
+
+  React.useEffect(() => {
+    if (state !== "processing") return;
+
+    const sync = async () => {
+      const res = await fetch("/api/mux/sync-lesson", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lessonId }),
+      });
+      if (!res.ok) return;
+      const data = (await res.json()) as { mux_status?: string };
+      if (data.mux_status === "ready") {
+        setState("ready");
+        router.refresh();
+      } else if (data.mux_status === "errored") {
+        setState("error");
+        setErrorMsg("Video processing failed.");
+        router.refresh();
+      }
+    };
+
+    void sync();
+    const interval = window.setInterval(() => void sync(), 12_000);
+    return () => window.clearInterval(interval);
+  }, [state, lessonId, router]);
 
   return (
     <div className="space-y-3">

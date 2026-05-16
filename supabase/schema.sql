@@ -195,6 +195,9 @@ create policy "Admin delete materials" on storage.objects
 -- Reads happen via signed URLs only (the API routes verify enrollment first),
 -- so no broad SELECT policy is required.
 
+-- Enable realtime status updates on lesson rows (admin + student players).
+-- alter publication supabase_realtime add table public.lessons;
+
 -- ─── Promote a user to admin (run once with the user's email) ────────────────
 -- update public.profiles
 --    set role = 'admin'
